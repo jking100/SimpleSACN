@@ -1,7 +1,7 @@
 #include <cassert>
 #include <iostream>
 
-#include "E131/sacnPolicy.hpp"
+#include "E131/SacnPolicy.hpp"
 
 using namespace SimpleSACN;
 
@@ -33,11 +33,11 @@ static void test_out_of_order()
     std::cout << "test_out_of_order good\n";
 }
 
-static sacnData pk(uint8_t cid, uint8_t seq, uint8_t prio = 100)
+static SacnData pk(uint8_t cid, uint8_t seq, uint8_t prio = 100)
 {
-    sacnData p{};
+    SacnData p{};
     p.universe = 1;
-    p.CID[0] = cid;
+    p.cid[0] = cid;
     p.sequenceNumber = seq;
     p.priority = prio;
     return p;
@@ -45,7 +45,7 @@ static sacnData pk(uint8_t cid, uint8_t seq, uint8_t prio = 100)
 
 static void test_relevant_packet()
 {
-    sacnData last = pk(1, 9);
+    SacnData last = pk(1, 9);
 
     assert(relevantPacket(pk(1, 10), 1, true, last));
     assert(!relevantPacket(pk(1, 10), 2, true, last));
@@ -69,7 +69,7 @@ static void test_relevant_packet()
 
 static void test_flags()
 {
-    sacnData p{};
+    SacnData p{};
     assert(!shouldTerminate(p) && !shouldNotDisplay(p));
     p.options = Constants::OPTIONS_STREAM_TERMINATED;
     assert(shouldTerminate(p) && !shouldNotDisplay(p));
@@ -80,10 +80,10 @@ static void test_flags()
 
 static void test_should_serve_frames()
 {
-    assert(shouldServeFrames(timeoutPolicy::HOLD, 2499, 0));
-    assert(shouldServeFrames(timeoutPolicy::HOLD, 100000, 0));
-    assert(shouldServeFrames(timeoutPolicy::STOP, 2499, 0));
-    assert(!shouldServeFrames(timeoutPolicy::STOP, 2500, 0));
+    assert(shouldServeFrames(TimeoutPolicy::HOLD, 2499, 0));
+    assert(shouldServeFrames(TimeoutPolicy::HOLD, 100000, 0));
+    assert(shouldServeFrames(TimeoutPolicy::STOP, 2499, 0));
+    assert(!shouldServeFrames(TimeoutPolicy::STOP, 2500, 0));
     std::cout << "test_should_serve_frames good\n";
 }
 

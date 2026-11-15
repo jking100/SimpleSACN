@@ -18,7 +18,7 @@ namespace SimpleSACN
         // required field values, E1.31 data packet
         constexpr uint16_t PREAMBLE_SIZE{0x0010};
         constexpr uint16_t POSTAMBLE_SIZE{0x0000};
-        constexpr uint8_t ACNPacketIdentifier[12] = {0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00};
+        constexpr uint8_t ACN_PACKET_IDENTIFIER[12] = {0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 0x37, 0x00, 0x00, 0x00};
         constexpr uint8_t ADDRESS_TYPE_AND_DATA_TYPE{0xa1};
         constexpr uint16_t FIRST_PROPERTY_ADDRESS{0x0000};
         constexpr uint16_t ADDRESS_INCREMENT{0x0001};
@@ -62,15 +62,15 @@ namespace SimpleSACN
 
     // 4.1 E1.31 Data Packet
     // todo: can i move logic for determining if the packet is well formed (acn,vectors,constants above?) out of the parser into this
-    struct sacnData
+    struct SacnData
     {
         // Root Layer                    // Field Description; Field Contents
         uint16_t preambleSize;           // Define RLP Preamble Size; 0x0010
         uint16_t postambleSize;          // RLP Post-amble Size; 0x0000
-        uint8_t ACNPacketIdentifier[12]; // Identifies this packet as E1.17; 0x41 0x53 0x43 0x2d 0x45 0x31 0x2e 0x31 0x37 0x00 0x00 0x00
+        uint8_t acnPacketIdentifier[12]; // Identifies this packet as E1.17; 0x41 0x53 0x43 0x2d 0x45 0x31 0x2e 0x31 0x37 0x00 0x00 0x00
         uint16_t rootFlagsAndLength;     // Protocol flags and length; Low 12 bits = PDU length, High 4 bits = 0x7
         uint32_t rootVector;             // Identifies RLP Data as 1.31 Protocol PDU; VECTOR_ROOT_E131_DATA
-        uint8_t CID[16];                 // Sender's CID; Senders unique ID
+        uint8_t cid[16];                 // Sender's CID; Senders unique ID
         // Framing Layer
         uint16_t framingFlagsAndLength;  // Protocol flags and length; Low 12 bits = PDU length, High 4 bits = 0x7
         uint32_t framingVector;          // Identifies 1.31 data as DMP Protocol PDU; VECTOR_E131_DATA_PACKET

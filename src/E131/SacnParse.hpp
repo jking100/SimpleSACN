@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstring>
 
-#include "sacnData.hpp"
+#include "SacnData.hpp"
 
 namespace SimpleSACN
 {
@@ -49,7 +49,7 @@ namespace Parse
     // root/framing/dmp vector, universe outside 1-63999,
     // dmp address fields, property value count / len mismatch, non-zero start code
     // @return parse into data packet succesful
-    inline bool parse(const uint8_t *buf, size_t len, sacnData &out)
+    inline bool parse(const uint8_t *buf, size_t len, SacnData &out)
     {
         using namespace Util;
         namespace off = Constants::Offsets;
@@ -63,17 +63,17 @@ namespace Parse
         out.postambleSize = read16ntoh(buf, off::postamble);
         if (out.preambleSize != Constants::PREAMBLE_SIZE || out.postambleSize != Constants::POSTAMBLE_SIZE)
             return false;
-        memcpy(out.ACNPacketIdentifier, buf + off::acnId, 12);
+        memcpy(out.acnPacketIdentifier, buf + off::acnId, 12);
         for (size_t i{}; i < 12; ++i)
         {
-            if (out.ACNPacketIdentifier[i] != Constants::ACNPacketIdentifier[i])
+            if (out.acnPacketIdentifier[i] != Constants::ACN_PACKET_IDENTIFIER[i])
                 return false;
         }
         out.rootFlagsAndLength = read16ntoh(buf, off::rootFlagsAndLength);
         out.rootVector = read32ntoh(buf, off::rootVector);
         if (out.rootVector != Constants::VECTOR_ROOT_E131_DATA)
             return false;
-        memcpy(out.CID, buf + off::cid, 16);
+        memcpy(out.cid, buf + off::cid, 16);
 
         // framing
         out.framingFlagsAndLength = read16ntoh(buf, off::framingFlagsAndLength);
@@ -111,7 +111,7 @@ namespace Parse
     }
 
     // todo: sync this to covered test cases and implement
-    enum class parseStatus
+    enum class ParseStatus
     {
         FAILED_PREAMBLE,
         FAILED_POSTAMBLE,
@@ -123,25 +123,25 @@ namespace Parse
         GOOD
     };
 
-    inline const char *parseStatus_to_string(parseStatus s)
+    inline const char *parseStatusToString(ParseStatus s)
     {
         switch (s)
         {
-        case parseStatus::FAILED_PREAMBLE:
+        case ParseStatus::FAILED_PREAMBLE:
             return "FAILED_PREAMBLE";
-        case parseStatus::FAILED_POSTAMBLE:
+        case ParseStatus::FAILED_POSTAMBLE:
             return "FAILED_POSTAMBLE";
-        case parseStatus::FAILED_ACN_ID:
+        case ParseStatus::FAILED_ACN_ID:
             return "FAILED_ACN_ID";
-        case parseStatus::FAILED_ROOT_VECTOR:
+        case ParseStatus::FAILED_ROOT_VECTOR:
             return "FAILED_ROOT_VECTOR";
-        case parseStatus::FAILED_FRAMING_VECTOR:
+        case ParseStatus::FAILED_FRAMING_VECTOR:
             return "FAILED_FRAMING_VECTOR";
-        case parseStatus::FAILED_CHANNEL_START_CODE:
+        case ParseStatus::FAILED_CHANNEL_START_CODE:
             return "FAILED_CHANNEL_START_CODE";
-        case parseStatus::INCORRECT_BUFFER_SIZE:
+        case ParseStatus::INCORRECT_BUFFER_SIZE:
             return "INCORRECT_BUFFER_SIZE";
-        case parseStatus::GOOD:
+        case ParseStatus::GOOD:
             return "GOOD";
         }
         return "Unknown";

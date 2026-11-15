@@ -7,7 +7,7 @@ add_library(SimpleSACN::SimpleSACN ALIAS SimpleSACN)
 target_include_directories(SimpleSACN INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_features(SimpleSACN INTERFACE cxx_std_17)
 
-# std::mutex required for 'src/Node/safeNode.hpp'
+# std::mutex required for 'src/Node/SafeNode.hpp'
 find_package(Threads REQUIRED)
 target_link_libraries(SimpleSACN INTERFACE Threads::Threads)
 

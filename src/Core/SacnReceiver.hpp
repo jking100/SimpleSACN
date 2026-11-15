@@ -2,67 +2,67 @@
 
 #include <cstring>
 
-#include "../E131/sacnPolicy.hpp"
-#include "../E131/DMXFrame.hpp"
+#include "../E131/SacnPolicy.hpp"
+#include "../E131/DmxFrame.hpp"
 
 namespace SimpleSACN
 {
 
 namespace Core
 {
-    // A sacnReceiver takes in well formed sacn data packets, applies sacn policy rules like data loss timeout... and from that maintains a latest snapshot of a dmx universe
+    // A SacnReceiver takes in well formed sacn data packets, applies sacn policy rules like data loss timeout... and from that maintains a latest snapshot of a dmx universe
     // it has a couple of states it can step thru like waiting, streaming, data loss depending on what input it has received, these states determine if it will give output
     // it is not threadsafe natively and it is its owners responsibiliy to use it correctly/wire it
     // it also does not track time internally and requires its owner to inform it of time
-    class sacnReceiver
+    class SacnReceiver
     {
     public:
-        enum class rxState
+        enum class RxState
         {
             WAITING,   // waiting for a cid to lock onto
             STREAMING, // locked onto a CID and not in data loss
             LOST,      // entered after detecting data loss, stream lock released (CID), will accept from any sender to move back to streaming, output based on timeoutpolicy
         };
 
-        struct rxConfig
+        struct RxConfig
         {
             uint16_t universe;
-            Policy::timeoutPolicy lossPolicy;
+            Policy::TimeoutPolicy lossPolicy;
         };
 
-        struct rxSnapshot
+        struct RxSnapshot
         {
-            rxState state;
-            DMXFrame currentFrame;
+            RxState state;
+            DmxFrame currentFrame;
             uint32_t currentFrameRxTime;
-            sacnData currentPacket;
+            SacnData currentPacket;
         };
 
-        sacnReceiver(rxConfig c) : _config(c) { _snapshot.state = rxState::WAITING; }
+        SacnReceiver(RxConfig c) : _config(c) { _snapshot.state = RxState::WAITING; }
 
-        bool onSacnPacket(sacnData p, uint32_t timeNowMs);
+        bool onSacnPacket(SacnData p, uint32_t timeNowMs);
 
-        bool getCurrentFrame(DMXFrame *out, uint32_t timeNowMs);
+        bool getCurrentFrame(DmxFrame *out, uint32_t timeNowMs);
 
-        rxState getCurrentState() { return _snapshot.state; }
+        RxState getCurrentState() { return _snapshot.state; }
 
     private:
-        rxConfig _config{};
-        rxSnapshot _snapshot{};
+        RxConfig _config{};
+        RxSnapshot _snapshot{};
 
         void update(uint32_t timeNowMs)
         {
-            if (checkState(rxState::STREAMING) && Policy::dataLoss(timeNowMs, _snapshot.currentFrameRxTime))
-                _snapshot.state = rxState::LOST;
+            if (checkState(RxState::STREAMING) && Policy::dataLoss(timeNowMs, _snapshot.currentFrameRxTime))
+                _snapshot.state = RxState::LOST;
         }
 
-        constexpr bool checkState(rxState s)
+        constexpr bool checkState(RxState s)
         {
             return s == _snapshot.state;
         }
     };
 
-    inline bool sacnReceiver::onSacnPacket(sacnData p, uint32_t timeNowMs)
+    inline bool SacnReceiver::onSacnPacket(SacnData p, uint32_t timeNowMs)
     {
         update(timeNowMs);
 
@@ -70,14 +70,14 @@ namespace Core
         if (Policy::shouldNotDisplay(p))
             return false;
 
-        if (!Policy::relevantPacket(p, _config.universe, checkState(rxState::STREAMING), _snapshot.currentPacket))
+        if (!Policy::relevantPacket(p, _config.universe, checkState(RxState::STREAMING), _snapshot.currentPacket))
             return false;
 
         // only the current source can end its stream
         if (Policy::shouldTerminate(p))
         {
-            if (!checkState(rxState::WAITING) && Policy::sameSource(p, _snapshot.currentPacket))
-                _snapshot.state = rxState::WAITING;
+            if (!checkState(RxState::WAITING) && Policy::sameSource(p, _snapshot.currentPacket))
+                _snapshot.state = RxState::WAITING;
             return false;
         }
 
@@ -87,17 +87,17 @@ namespace Core
         // todo this is sacn knowledge the +1, and the 512 less so but still
         memcpy(_snapshot.currentFrame.data, p.propertyValues + 1, 512);
 
-        if (checkState(rxState::LOST) || checkState(rxState::WAITING))
-            _snapshot.state = rxState::STREAMING;
+        if (checkState(RxState::LOST) || checkState(RxState::WAITING))
+            _snapshot.state = RxState::STREAMING;
 
         return true;
     }
 
-    inline bool sacnReceiver::getCurrentFrame(DMXFrame *out, uint32_t timeNowMs)
+    inline bool SacnReceiver::getCurrentFrame(DmxFrame *out, uint32_t timeNowMs)
     {
         update(timeNowMs);
 
-        if (checkState(rxState::WAITING))
+        if (checkState(RxState::WAITING))
             return false;
 
         if (!Policy::shouldServeFrames(_config.lossPolicy, timeNowMs, _snapshot.currentFrameRxTime))
