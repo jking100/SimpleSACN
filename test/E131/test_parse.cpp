@@ -2,8 +2,10 @@
 #include <iostream>
 #include <cstring>
 
-#include "../sacnData.hpp"
-#include "../sacnParse.hpp"
+#include "E131/sacnData.hpp"
+#include "E131/sacnParse.hpp"
+
+using namespace SimpleSACN;
 
 // g++ -std=c++17 -Wall -Wextra tests/test_parse.cpp -o test_parse && ./test_parse && rm test_parse.exe
 
@@ -45,7 +47,7 @@ void reset(uint8_t *buf)
     memcpy(buf, data::sacnView::uni1_ch1_8_255_bytes, sizeof(data::sacnView::uni1_ch1_8_255_bytes));
 }
 
-using namespace sacnParse::util;
+using namespace Parse::Util;
 
 static void test_swaps()
 {
@@ -72,7 +74,7 @@ static void test_parse_happy()
 {
     sacnData data;
 
-    assert(sacnParse::parse(data::sacnView::uni1_ch1_8_255_bytes, 638, data));
+    assert(Parse::parse(data::sacnView::uni1_ch1_8_255_bytes, 638, data));
     assert(data.universe == 1);
     assert(data.propertyValueCount == 513);
     assert(data.propertyValues[0] == 0x00);
@@ -81,7 +83,7 @@ static void test_parse_happy()
     for (size_t i{9}; i < 513; ++i)
         assert(data.propertyValues[i] == 0x00);
 
-    assert(sacnParse::parse(data::sacnView::uniAF00_ch1_8_255_bytes, 638, data));
+    assert(Parse::parse(data::sacnView::uniAF00_ch1_8_255_bytes, 638, data));
     assert(data.universe == 0xAF00);
 
     std::cout << "test_parse_happy good\n";
@@ -91,19 +93,19 @@ static void test_parse_happy()
 static void test_parse_bad_fields()
 {
     const size_t offsets[] = {
-        constants::offsets::preamble + 1,
-        constants::offsets::postamble + 1,
-        constants::offsets::acnId + 2,
-        constants::offsets::acnId + 11,
-        constants::offsets::rootVector,
-        constants::offsets::rootVector + 3,
-        constants::offsets::framingVector,
-        constants::offsets::framingVector + 3,
-        constants::offsets::dmpVector,
-        constants::offsets::addressTypeAndDataType,
-        constants::offsets::firstPropertyAddress + 1,
-        constants::offsets::addressIncrement + 1,
-        constants::offsets::startCode,
+        Constants::Offsets::preamble + 1,
+        Constants::Offsets::postamble + 1,
+        Constants::Offsets::acnId + 2,
+        Constants::Offsets::acnId + 11,
+        Constants::Offsets::rootVector,
+        Constants::Offsets::rootVector + 3,
+        Constants::Offsets::framingVector,
+        Constants::Offsets::framingVector + 3,
+        Constants::Offsets::dmpVector,
+        Constants::Offsets::addressTypeAndDataType,
+        Constants::Offsets::firstPropertyAddress + 1,
+        Constants::Offsets::addressIncrement + 1,
+        Constants::Offsets::startCode,
     };
 
     sacnData data;
@@ -112,7 +114,7 @@ static void test_parse_bad_fields()
     {
         reset(tmp);
         mutate(tmp, off);
-        assert(!sacnParse::parse(tmp, sizeof(tmp), data));
+        assert(!Parse::parse(tmp, sizeof(tmp), data));
     }
     std::cout << "test_parse_bad_fields good\n";
 }
@@ -124,12 +126,12 @@ static void test_parse_universe_range()
 
     // universe range is 1 - 63999
     reset(tmp);
-    write16hton(tmp, constants::offsets::universe, 0);
-    assert(!sacnParse::parse(tmp, sizeof(tmp), data));
-    write16hton(tmp, constants::offsets::universe, 64000);
-    assert(!sacnParse::parse(tmp, sizeof(tmp), data));
-    write16hton(tmp, constants::offsets::universe, 63999);
-    assert(sacnParse::parse(tmp, sizeof(tmp), data));
+    write16hton(tmp, Constants::Offsets::universe, 0);
+    assert(!Parse::parse(tmp, sizeof(tmp), data));
+    write16hton(tmp, Constants::Offsets::universe, 64000);
+    assert(!Parse::parse(tmp, sizeof(tmp), data));
+    write16hton(tmp, Constants::Offsets::universe, 63999);
+    assert(Parse::parse(tmp, sizeof(tmp), data));
 
     std::cout << "test_parse_universe_range good\n";
 }
@@ -141,14 +143,14 @@ static void test_parse_lengths()
 
     // buffer too small for a header
     reset(tmp);
-    assert(!sacnParse::parse(tmp, constants::offsets::startCode, data));
-    assert(!sacnParse::parse(tmp, 0, data));
+    assert(!Parse::parse(tmp, Constants::Offsets::startCode, data));
+    assert(!Parse::parse(tmp, 0, data));
 
     // start code + 24 channels; fill data first so the zeroing of unsent slots is checked
-    write16hton(tmp, constants::offsets::propertyValueCount, 25);
-    size_t len = constants::offsets::startCode + 25;
+    write16hton(tmp, Constants::Offsets::propertyValueCount, 25);
+    size_t len = Constants::Offsets::startCode + 25;
     memset(&data, 0xAA, sizeof(data));
-    assert(sacnParse::parse(tmp, len, data));
+    assert(Parse::parse(tmp, len, data));
     assert(data.propertyValueCount == 25);
     for (size_t i{1}; i <= 8; ++i)
         assert(data.propertyValues[i] == 0xFF);
@@ -156,16 +158,16 @@ static void test_parse_lengths()
         assert(data.propertyValues[i] == 0x00);
 
     // len and property value count disagree
-    assert(!sacnParse::parse(tmp, len + 1, data));
-    assert(!sacnParse::parse(tmp, len - 1, data));
+    assert(!Parse::parse(tmp, len + 1, data));
+    assert(!Parse::parse(tmp, len - 1, data));
 
     // smallest valid packet: start code only
-    write16hton(tmp, constants::offsets::propertyValueCount, 1);
-    assert(sacnParse::parse(tmp, constants::offsets::startCode + 1, data));
+    write16hton(tmp, Constants::Offsets::propertyValueCount, 1);
+    assert(Parse::parse(tmp, Constants::Offsets::startCode + 1, data));
 
     // 514 slots fails even when len agrees with it
-    write16hton(tmp, constants::offsets::propertyValueCount, 514);
-    assert(!sacnParse::parse(tmp, constants::offsets::startCode + 514, data));
+    write16hton(tmp, Constants::Offsets::propertyValueCount, 514);
+    assert(!Parse::parse(tmp, Constants::Offsets::startCode + 514, data));
 
     std::cout << "test_parse_lengths good\n";
 }
@@ -177,12 +179,12 @@ static void test_parse_options()
     uint8_t tmp[sizeof(data::sacnView::uni1_ch1_8_255_bytes)];
 
     reset(tmp);
-    tmp[constants::offsets::options] = constants::OPTIONS_STREAM_TERMINATED;
-    assert(sacnParse::parse(tmp, sizeof(tmp), data));
+    tmp[Constants::Offsets::options] = Constants::OPTIONS_STREAM_TERMINATED;
+    assert(Parse::parse(tmp, sizeof(tmp), data));
     assert(data.isTerminated() && !data.isPreview());
 
-    tmp[constants::offsets::options] = constants::OPTIONS_PREVIEW_DATA;
-    assert(sacnParse::parse(tmp, sizeof(tmp), data));
+    tmp[Constants::Offsets::options] = Constants::OPTIONS_PREVIEW_DATA;
+    assert(Parse::parse(tmp, sizeof(tmp), data));
     assert(data.isPreview() && !data.isTerminated());
 
     std::cout << "test_parse_options good\n";

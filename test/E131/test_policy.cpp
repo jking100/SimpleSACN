@@ -1,9 +1,11 @@
 #include <cassert>
 #include <iostream>
 
-#include "../sacnPolicy.hpp"
+#include "E131/sacnPolicy.hpp"
 
-using namespace sacnPolicy;
+using namespace SimpleSACN;
+
+using namespace Policy;
 
 static void test_dataloss()
 {
@@ -69,9 +71,9 @@ static void test_flags()
 {
     sacnData p{};
     assert(!shouldTerminate(p) && !shouldNotDisplay(p));
-    p.options = constants::OPTIONS_STREAM_TERMINATED;
+    p.options = Constants::OPTIONS_STREAM_TERMINATED;
     assert(shouldTerminate(p) && !shouldNotDisplay(p));
-    p.options = constants::OPTIONS_PREVIEW_DATA;
+    p.options = Constants::OPTIONS_PREVIEW_DATA;
     assert(!shouldTerminate(p) && shouldNotDisplay(p));
     std::cout << "test_flags good\n";
 }

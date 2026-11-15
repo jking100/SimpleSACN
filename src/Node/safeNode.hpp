@@ -11,10 +11,13 @@
 
 #include "../Core/sacnReceiver.hpp"
 
+namespace SimpleSACN
+{
+
 namespace Node
 {
     using Config = Core::sacnReceiver::rxConfig;
-    using DataLossPolicy = sacnPolicy::timeoutPolicy;
+    using DataLossPolicy = Policy::timeoutPolicy;
 
     // single universe sacnNode with configurable data loss behavior, and a basic in/out api
     // given raw bytes, this node will process and serve frames of dmx data according to sacn operation policy
@@ -36,7 +39,7 @@ namespace Node
     inline bool safeNode::onPacket(const uint8_t *buf, size_t len, uint32_t timeNowMs)
     {
         sacnData tmp;
-        if (!sacnParse::parse(buf, len, tmp))
+        if (!Parse::parse(buf, len, tmp))
             return false;
 
         const std::lock_guard<std::mutex> lock(_guard);
@@ -51,3 +54,4 @@ namespace Node
         return _rx.getCurrentFrame(out, timeNowMs);
     }
 }
+} // namespace SimpleSACN

@@ -2,13 +2,15 @@
 #include <cstring>
 #include <iostream>
 
-#include "../sacnReceiver.hpp"
+#include "Core/sacnReceiver.hpp"
+
+using namespace SimpleSACN;
 
 using Core::sacnReceiver;
 using state = sacnReceiver::rxState;
 
-static const sacnReceiver::rxConfig u1_h{1, sacnPolicy::timeoutPolicy::HOLD};
-static const sacnReceiver::rxConfig u1_s{1, sacnPolicy::timeoutPolicy::STOP};
+static const sacnReceiver::rxConfig u1_h{1, Policy::timeoutPolicy::HOLD};
+static const sacnReceiver::rxConfig u1_s{1, Policy::timeoutPolicy::STOP};
 
 // uni 1 packet; cid byte 0, sequence number and channel 1 are the parts the tests vary
 static sacnData pkt(uint8_t cid, uint8_t seq, uint8_t ch1 = 255, uint8_t options = 0)
@@ -138,7 +140,7 @@ static void test_terminate()
         sacnReceiver rx(cfg);
         rx.onSacnPacket(pkt(1, 0), 0);
 
-        assert(!rx.onSacnPacket(pkt(1, 1, 255, constants::OPTIONS_STREAM_TERMINATED), 100));
+        assert(!rx.onSacnPacket(pkt(1, 1, 255, Constants::OPTIONS_STREAM_TERMINATED), 100));
         assert(rx.getCurrentState() == state::WAITING);
 
         DMXFrame out;
@@ -156,7 +158,7 @@ static void test_terminate_other_cid()
 {
     sacnReceiver rx(u1_h);
     rx.onSacnPacket(pkt(1, 0), 0);
-    assert(!rx.onSacnPacket(pkt(2, 1, 255, constants::OPTIONS_STREAM_TERMINATED), 100));
+    assert(!rx.onSacnPacket(pkt(2, 1, 255, Constants::OPTIONS_STREAM_TERMINATED), 100));
     assert(rx.getCurrentState() == state::STREAMING);
     std::cout << "test_terminate_other_cid good\n";
 }
@@ -165,11 +167,11 @@ static void test_terminate_other_cid()
 static void test_preview()
 {
     sacnReceiver rx(u1_h);
-    assert(!rx.onSacnPacket(pkt(1, 0, 255, constants::OPTIONS_PREVIEW_DATA), 0));
+    assert(!rx.onSacnPacket(pkt(1, 0, 255, Constants::OPTIONS_PREVIEW_DATA), 0));
     assert(rx.getCurrentState() == state::WAITING);
 
     rx.onSacnPacket(pkt(1, 1), 100);
-    assert(!rx.onSacnPacket(pkt(2, 0, 7, constants::OPTIONS_PREVIEW_DATA), 200));
+    assert(!rx.onSacnPacket(pkt(2, 0, 7, Constants::OPTIONS_PREVIEW_DATA), 200));
     DMXFrame out;
     assert(rx.getCurrentFrame(&out, 200));
     assert(out.data[0] == 255);

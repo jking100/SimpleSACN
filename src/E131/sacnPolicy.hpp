@@ -4,7 +4,10 @@
 
 #include "sacnData.hpp"
 
-namespace sacnPolicy
+namespace SimpleSACN
+{
+
+namespace Policy
 {
     enum class timeoutPolicy
     {
@@ -57,3 +60,4 @@ namespace sacnPolicy
         return tP == timeoutPolicy::HOLD || !dataLoss(nowMs, lastPacketMs);
     }
 }
+} // namespace SimpleSACN

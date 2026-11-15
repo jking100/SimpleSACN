@@ -5,6 +5,9 @@
 #include "../E131/sacnPolicy.hpp"
 #include "../E131/DMXFrame.hpp"
 
+namespace SimpleSACN
+{
+
 namespace Core
 {
     // A sacnReceiver takes in well formed sacn data packets, applies sacn policy rules like data loss timeout... and from that maintains a latest snapshot of a dmx universe
@@ -24,7 +27,7 @@ namespace Core
         struct rxConfig
         {
             uint16_t universe;
-            sacnPolicy::timeoutPolicy lossPolicy;
+            Policy::timeoutPolicy lossPolicy;
         };
 
         struct rxSnapshot
@@ -49,7 +52,7 @@ namespace Core
 
         void update(uint32_t timeNowMs)
         {
-            if (checkState(rxState::STREAMING) && sacnPolicy::dataLoss(timeNowMs, _snapshot.currentFrameRxTime))
+            if (checkState(rxState::STREAMING) && Policy::dataLoss(timeNowMs, _snapshot.currentFrameRxTime))
                 _snapshot.state = rxState::LOST;
         }
 
@@ -64,16 +67,16 @@ namespace Core
         update(timeNowMs);
 
         // preview is never live output, so it must not take over the stream
-        if (sacnPolicy::shouldNotDisplay(p))
+        if (Policy::shouldNotDisplay(p))
             return false;
 
-        if (!sacnPolicy::relevantPacket(p, _config.universe, checkState(rxState::STREAMING), _snapshot.currentPacket))
+        if (!Policy::relevantPacket(p, _config.universe, checkState(rxState::STREAMING), _snapshot.currentPacket))
             return false;
 
         // only the current source can end its stream
-        if (sacnPolicy::shouldTerminate(p))
+        if (Policy::shouldTerminate(p))
         {
-            if (!checkState(rxState::WAITING) && sacnPolicy::sameSource(p, _snapshot.currentPacket))
+            if (!checkState(rxState::WAITING) && Policy::sameSource(p, _snapshot.currentPacket))
                 _snapshot.state = rxState::WAITING;
             return false;
         }
@@ -97,10 +100,11 @@ namespace Core
         if (checkState(rxState::WAITING))
             return false;
 
-        if (!sacnPolicy::shouldServeFrames(_config.lossPolicy, timeNowMs, _snapshot.currentFrameRxTime))
+        if (!Policy::shouldServeFrames(_config.lossPolicy, timeNowMs, _snapshot.currentFrameRxTime))
             return false;
 
         *out = _snapshot.currentFrame;
         return true;
     }
 }
+} // namespace SimpleSACN
